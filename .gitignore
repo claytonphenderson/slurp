@@ -1,0 +1,24 @@
+**/*.env
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.bin
+
+# Build directory
+/build/
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Vendor directory (when using Go modules)
+vendor/
+
+# Go module files
+go.sum
+
+# Go binaries
+/slurp
