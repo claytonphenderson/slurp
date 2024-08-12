@@ -1,7 +1,7 @@
-# Slurp
+# Slurp (a work in progress)
 ### A (very small) ingress utility for handling telemetry and event data
 
-I didnt want to pay for an expensive telemetry tool for my side projects.  So instead I made this simple tool to handle Event, Metric and Error Telemetry and land it in a normalized db that I can run reports on.
+I didnt want to pay for an expensive telemetry tool for my side projects.  So instead I've started working on this simple tool to handle Event, Metric and Error Telemetry and land it in a normalized db that I can run reports on.
 
 This is for fun.
 
