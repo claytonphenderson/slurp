@@ -2,10 +2,11 @@ package data_access
 
 import (
 	"database/sql"
+	"os"
+
 	"github.com/claytonphenderson/slurp/internal/models"
 	_ "github.com/microsoft/go-mssqldb"
 	"github.com/rs/zerolog/log"
-	"os"
 )
 
 type SqlDataStore struct {

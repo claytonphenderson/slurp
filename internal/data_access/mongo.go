@@ -40,3 +40,9 @@ func ConnectMongo() *MongoDataStore {
 
 	return &store
 }
+
+func handleErr(err error) {
+	if err != nil {
+		log.Error().Err(err)
+	}
+}
