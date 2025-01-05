@@ -22,3 +22,5 @@ go.sum
 
 # Go binaries
 /slurp
+
+.DS_Store
