@@ -24,3 +24,6 @@ go.sum
 /slurp
 
 .DS_Store
+
+**/bin/
+**/obj/
