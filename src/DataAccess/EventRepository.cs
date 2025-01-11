@@ -19,10 +19,12 @@ public class EventRepository : IEventRepository
         try
         {
             await using (var cmd =
-            new NpgsqlCommand("INSERT INTO events (id, date, eventname, properties, inserteddate) VALUES (@i, @d, @e, @p, @id)", _connection))
+            new NpgsqlCommand("INSERT INTO events (id, date, app, environment, eventname, properties, inserteddate) VALUES (@i, @d, @a, @en, @e, @p, @id)", _connection))
             {
                 cmd.Parameters.AddWithValue("@i", newEvent.Id);
                 cmd.Parameters.AddWithValue("@d", newEvent.Date);
+                cmd.Parameters.AddWithValue("@a", newEvent.App != null ? newEvent.App : DBNull.Value);
+                cmd.Parameters.AddWithValue("@en", newEvent.Environment != null ? newEvent.Environment : "NULL");
                 cmd.Parameters.AddWithValue("@e", newEvent.EventName);
                 cmd.Parameters.AddWithValue("@p", newEvent.Properties);
                 cmd.Parameters.AddWithValue("@id", DateTimeOffset.UtcNow);
