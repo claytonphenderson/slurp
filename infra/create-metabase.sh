@@ -1,0 +1,1 @@
+docker run -d -p 3001:3000 --network local -v metabase-data:/metabase.db --name slurp-metabase metabase/metabase:latest;
