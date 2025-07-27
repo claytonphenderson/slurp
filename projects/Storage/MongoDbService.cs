@@ -53,7 +53,12 @@ public class MongoDbService : IDbService
 
             await col.InsertOneAsync(bson);
             _logger.LogInformation($"Wrote event data to {db} : {collection}");
-            
+
+        }
+        catch (MongoDuplicateKeyException)
+        {
+            _logger.LogWarning($"This event was already inserted once, skipping {obj.GetProperty("Id")}");
+            return;
         }
         catch (Exception e)
         {

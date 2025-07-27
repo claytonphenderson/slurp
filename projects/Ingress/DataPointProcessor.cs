@@ -23,7 +23,7 @@ public class DataPointProcessor
         {
             throw new Exception("Invalid request properties");
         }
-        
+
         await channel.Writer.WriteAsync(data);
     }
 
