@@ -51,9 +51,19 @@ public class MongoDbService : IDbService
             var bson = BsonDocument.Parse(obj.GetRawText());
             bson["date"] = new BsonDateTime(DateTime.UtcNow);
 
+            // set the _id field here to the provided guid.  Mongo timeseries doesnt allow
+            // for uniqueness constraints, so this is ultimately something that will help in 
+            // post processing to eliminate duplicates
+            bson["_id"] = bson["id"];
+            bson.Remove("id");
+
             await col.InsertOneAsync(bson);
             _logger.LogInformation($"Wrote event data to {db} : {collection}");
-            
+
+        }
+        catch (MongoDuplicateKeyException dke)
+        {
+            _logger.LogError("Duplicate mongo entry: " + dke.Message);
         }
         catch (Exception e)
         {
