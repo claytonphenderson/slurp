@@ -61,10 +61,6 @@ public class MongoDbService : IDbService
             _logger.LogInformation($"Wrote event data to {db} : {collection}");
 
         }
-        catch (MongoDuplicateKeyException dke)
-        {
-            _logger.LogError("Duplicate mongo entry: " + dke.Message);
-        }
         catch (Exception e)
         {
             _logger.LogError("Could not insert into collection: " + e.Message);

@@ -1,9 +1,10 @@
-
-
 using System.Text.Json;
 using Ingress;
 using Microsoft.AspNetCore.Http.Json;
 using Models;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using Storage;
 
@@ -20,6 +21,12 @@ builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient("mongodb://loca
 builder.Services.AddSingleton<IDbService, MongoDbService>();
 builder.Services.AddSingleton<DataPointProcessor>();
 
+BsonClassMap.RegisterClassMap<DataPoint>(cm =>
+{
+    cm.AutoMap();
+    cm.MapIdMember(c => c.Id).SetSerializer(new StringSerializer(BsonType.ObjectId));
+});
+
 var app = builder.Build();
 
 
@@ -28,21 +35,30 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapPost("/{subject}/{eventName}/push", async(
+app.MapPost("/{subject}/{eventName}/push", async (
     string subject,
     string eventName,
     JsonElement jsonBody,
-    DataPointProcessor processor) =>
+    DataPointProcessor processor,
+    ILogger logger) =>
 {
-    var dataPoint = new DataPoint
+    try
     {
-        Subject = subject,
-        Event = eventName,
-        Object = jsonBody
-    };
+        var dataPoint = new DataPoint
+        {
+            Subject = subject,
+            Event = eventName,
+            Object = jsonBody
+        };
 
-    await processor.IngestNewDataPoint(dataPoint);
-    return Results.Ok();
+        await processor.IngestNewDataPoint(dataPoint);
+        return Results.Ok();
+    }
+    catch (Exception e)
+    {
+        logger.LogError($"A Problem occurred while submitting new datapoint ${e.Message}");
+        return Results.InternalServerError("A Problem occurred while submitting new datapoint");
+    }
 });
 
 app.Run();
