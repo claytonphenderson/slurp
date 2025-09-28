@@ -6,6 +6,11 @@ using MongoDB.Driver;
 
 namespace Storage;
 
+/// <summary>
+/// Todo:
+/// - write errors to dead letter queue
+/// - figure out how to handle deduplication 
+/// </summary>
 public class MongoDbService : IDbService
 {
     private readonly IMongoClient _client;
@@ -17,12 +22,16 @@ public class MongoDbService : IDbService
         _logger = logger;
     }
 
-    public async Task Insert(string db, string collection, JsonElement obj)
+    public async Task Insert(string db, string collection, IEnumerable<JsonElement> objs)
     {
         try
         {
             // assume the database already exists.  helps prevent unwanted data
             var database = _client.GetDatabase(db);
+            if (database is null)
+            {
+                throw new Exception($"Subject {db} has no existing mongo database");
+            }
 
             // cache the existing collections
             if (!_dbCollections.ContainsKey(db))
@@ -36,29 +45,43 @@ public class MongoDbService : IDbService
             {
                 await database.CreateCollectionAsync(collection, new CreateCollectionOptions
                 {
-                    TimeSeriesOptions = new TimeSeriesOptions("date", "meta", TimeSeriesGranularity.Seconds)
+                    TimeSeriesOptions = new TimeSeriesOptions("date", "meta", TimeSeriesGranularity.Hours)
                 });
                 _logger.LogInformation($"Created new db collection: " + collection);
 
                 _dbCollections[db].Add(collection);
             }
 
-            // insert new record to collection
+            // insert new records to collection
             var col = database.GetCollection<BsonDocument>(collection);
-            _logger.LogDebug(obj.GetRawText());
+            var bsonDocs = new List<BsonDocument>();
+            foreach (var obj in objs)
+            {
+                // make mongo happy with the date format
+                var bson = BsonDocument.Parse(obj.GetRawText());
+                bson["date"] = new BsonDateTime(DateTime.UtcNow);
 
-            // make mongo happy with the date format
-            var bson = BsonDocument.Parse(obj.GetRawText());
-            bson["date"] = new BsonDateTime(DateTime.UtcNow);
+                // try to parse the date from the json input
+                if (obj.TryGetProperty("date", out JsonElement dateElement))
+                {
+                    if (dateElement.TryGetDateTime(out DateTime dateTime))
+                    {
+                        bson["date"] = new BsonDateTime(dateTime);
+                    }
+                }
 
-            // set the _id field here to the provided guid.  Mongo timeseries doesnt allow
-            // for uniqueness constraints, so this is ultimately something that will help in 
-            // post processing to eliminate duplicates
-            bson["_id"] = bson["id"];
-            bson.Remove("id");
+                // set the _id field here to the provided guid.  Mongo timeseries doesnt allow
+                // for uniqueness constraints, so this is ultimately something that will help in 
+                // post processing to eliminate duplicates
+                bson["_id"] = bson["id"];
+                bson.Remove("id");
 
-            await col.InsertOneAsync(bson);
-            _logger.LogInformation($"Wrote event data to {db} : {collection}");
+                bsonDocs.Add(bson);
+            }
+
+
+            await col.InsertManyAsync(bsonDocs);
+            _logger.LogInformation($"Wrote {bsonDocs.Count} documents to {db}.{collection}");
 
         }
         catch (Exception e)

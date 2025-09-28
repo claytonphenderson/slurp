@@ -1,18 +1,25 @@
 using System.Threading.Channels;
-using Microsoft.Extensions.Logging;
 using Models;
+using Storage;
 
-namespace Ingress;
+namespace Http;
 
+/// <summary>
+/// Think the channel is overkill, huh? Well it allows the api call to return in 
+/// less than 10ms so I think I'll stick with it.
+/// 
+/// TODO:
+/// - make the append to file and mongo save return results obj so we can handle errors
+/// </summary>
 public class DataPointProcessor
 {
     private readonly Channel<DataPoint> channel = Channel.CreateUnbounded<DataPoint>();
-    private readonly ILogger<DataPointProcessor> _logger;
     private readonly IDbService _db;
-    public DataPointProcessor(ILogger<DataPointProcessor> logger, IDbService db)
+    private readonly AzureBlobStorageService _blob;
+    public DataPointProcessor(IDbService db, AzureBlobStorageService blob)
     {
-        _logger = logger;
         _db = db;
+        _blob = blob;
 
         _ = ProcessCollectedDataPoints();
     }
@@ -34,7 +41,11 @@ public class DataPointProcessor
             var reader = channel.Reader;
             await foreach (var item in reader.ReadAllAsync())
             {
-                await _db.Insert(item.Subject, item.Event, item.Object);
+                var success = await _blob.AppendToFile(Utils.GetFileName(item), [item.Object]);
+                if (success)
+                {
+                    await _db.Insert(item.Subject, item.Event, [item.Object]);
+                }
             }
         });
     }

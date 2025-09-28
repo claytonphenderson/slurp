@@ -1,5 +1,7 @@
 using System.Text.Json;
-using Ingress;
+using Azure.Identity;
+using Azure.Storage.Files.DataLake;
+using Http;
 using Microsoft.AspNetCore.Http.Json;
 using Models;
 using MongoDB.Bson;
@@ -15,6 +17,13 @@ builder.Services.Configure<JsonOptions>(options =>
     options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.SerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
     options.SerializerOptions.PropertyNameCaseInsensitive = true;
+});
+
+builder.Services.AddSingleton<AzureBlobStorageService>();
+builder.Services.AddSingleton<DataLakeFileSystemClient>(sp =>
+{
+    var serviceClient = new DataLakeServiceClient(new Uri("https://slurpdl.blob.core.windows.net/events"), new DefaultAzureCredential());
+    return serviceClient.GetFileSystemClient("events");
 });
 
 builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient("mongodb://localhost:27017"));
@@ -39,8 +48,7 @@ app.MapPost("/{subject}/{eventName}/push", async (
     string subject,
     string eventName,
     JsonElement jsonBody,
-    DataPointProcessor processor,
-    ILogger logger) =>
+    DataPointProcessor processor) =>
 {
     try
     {
@@ -56,7 +64,6 @@ app.MapPost("/{subject}/{eventName}/push", async (
     }
     catch (Exception e)
     {
-        logger.LogError($"A Problem occurred while submitting new datapoint ${e.Message}");
         return Results.InternalServerError("A Problem occurred while submitting new datapoint");
     }
 });
