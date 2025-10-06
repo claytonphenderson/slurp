@@ -26,11 +26,6 @@ public class DataPointProcessor
 
     public async Task IngestNewDataPoint(DataPoint data)
     {
-        if (!data.Object.TryGetProperty("meta", out _) || !data.Object.TryGetProperty("date", out _))
-        {
-            throw new Exception("Invalid request properties");
-        }
-
         await channel.Writer.WriteAsync(data);
     }
 
@@ -41,7 +36,8 @@ public class DataPointProcessor
             var reader = channel.Reader;
             await foreach (var item in reader.ReadAllAsync())
             {
-                var success = await _blob.AppendToFile(Utils.GetFileName(item), [item.Object]);
+                var date = DateTime.Parse(item.Object.GetProperty("date").ToString());
+                var success = await _blob.AppendToFile(Utils.GetFileName(item.Subject, item.Event, date, "restapi"), [item.Object]);
                 if (success)
                 {
                     await _db.Insert(item.Subject, item.Event, [item.Object]);

@@ -4,8 +4,8 @@ namespace Models;
 
 public record class DataPoint
 {
-    public string Id = Guid.NewGuid().ToString();
-    public required string Subject;
-    public required string Event;
-    public required JsonElement Object;
+    public required string Subject { get; set; }
+    public required string Event { get; set; }
+    public DateTime? Date { get; set; }
+    public required JsonElement Object { get; set; }
 }

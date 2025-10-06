@@ -1,4 +1,5 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -13,6 +14,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Http", "apps\Http\Http.csproj", "{8B3FEA2B-2322-C64B-60CE-FE2FB76EBDC8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamReader", "apps\StreamReader\StreamReader.csproj", "{B50C38DB-08AF-4D15-920C-29F3CAA14288}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{07C2787E-EAC7-C090-1BA3-A61EC2A24D84}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataGenerator", "tools\DataGenerator\DataGenerator.csproj", "{33FF797D-B1AF-46F3-BABD-8027C92C64DD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,6 +41,10 @@ Global
 		{B50C38DB-08AF-4D15-920C-29F3CAA14288}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B50C38DB-08AF-4D15-920C-29F3CAA14288}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B50C38DB-08AF-4D15-920C-29F3CAA14288}.Release|Any CPU.Build.0 = Release|Any CPU
+		{33FF797D-B1AF-46F3-BABD-8027C92C64DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{33FF797D-B1AF-46F3-BABD-8027C92C64DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{33FF797D-B1AF-46F3-BABD-8027C92C64DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{33FF797D-B1AF-46F3-BABD-8027C92C64DD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -45,6 +54,7 @@ Global
 		{1F372270-7504-4E6A-442E-C9FC79C2C7B2} = {17245595-230B-9055-A944-863F0DDDA8E8}
 		{8B3FEA2B-2322-C64B-60CE-FE2FB76EBDC8} = {1787FE1D-075E-9E68-7218-25F1BD1BBEAB}
 		{B50C38DB-08AF-4D15-920C-29F3CAA14288} = {1787FE1D-075E-9E68-7218-25F1BD1BBEAB}
+		{33FF797D-B1AF-46F3-BABD-8027C92C64DD} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {17CC6486-9346-4642-BAD8-52EF64EC29D4}

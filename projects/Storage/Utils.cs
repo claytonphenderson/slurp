@@ -4,12 +4,12 @@ using Models;
 
 public static class Utils
 {
-    public static string GetFileName(DataPoint dataPoint, string workerId = "0")
+    public static string GetFileName(string subject, string eventName, DateTime date, string workerId = "0")
     {
         using (var md5 = MD5.Create()) {
         
-            var currentTime = DateTime.UtcNow;
-            return $"{dataPoint.Subject}/{dataPoint.Event}/{currentTime.Year}/{currentTime.ToString("MM")}/{currentTime.ToString("dd")}/{currentTime.ToString("HH")}/{currentTime.ToString("yyyy-MM-dd:HH")}_{workerId}.jsonl";
+            return $"{subject}/{eventName}/{date.Year}/{date.ToString("MM")}/{date.ToString("dd")}/{date.ToString("yyyy-MM-dd")}_{workerId}.jsonl";
+            // return $"{subject}/{eventName}/{date.Year}/{date.ToString("MM")}/{date.ToString("dd")}/{date.ToString("HH")}/{date.ToString("yyyy-MM-dd:HH")}_{workerId}.jsonl";
         }
     }
 }

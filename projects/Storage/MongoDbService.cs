@@ -22,7 +22,7 @@ public class MongoDbService : IDbService
         _logger = logger;
     }
 
-    public async Task Insert(string db, string collection, IEnumerable<JsonElement> objs)
+    public async Task Insert(string db, string collection, List<JsonElement> objs)
     {
         try
         {
@@ -43,19 +43,14 @@ public class MongoDbService : IDbService
             // create the new timeseries collection if necessary
             if (!_dbCollections[db].Contains(collection))
             {
-                await database.CreateCollectionAsync(collection, new CreateCollectionOptions
-                {
-                    TimeSeriesOptions = new TimeSeriesOptions("date", "meta", TimeSeriesGranularity.Hours)
-                });
-                _logger.LogInformation($"Created new db collection: " + collection);
-
+                await CreateCollection(collection, database);
                 _dbCollections[db].Add(collection);
             }
 
             // insert new records to collection
             var col = database.GetCollection<BsonDocument>(collection);
             var bsonDocs = new List<BsonDocument>();
-            foreach (var obj in objs)
+            objs.ForEach(obj =>
             {
                 // make mongo happy with the date format
                 var bson = BsonDocument.Parse(obj.GetRawText());
@@ -70,6 +65,8 @@ public class MongoDbService : IDbService
                     }
                 }
 
+                bson["meta"] = new BsonDocument();
+
                 // set the _id field here to the provided guid.  Mongo timeseries doesnt allow
                 // for uniqueness constraints, so this is ultimately something that will help in 
                 // post processing to eliminate duplicates
@@ -77,7 +74,7 @@ public class MongoDbService : IDbService
                 bson.Remove("id");
 
                 bsonDocs.Add(bson);
-            }
+            });
 
 
             await col.InsertManyAsync(bsonDocs);
@@ -88,5 +85,16 @@ public class MongoDbService : IDbService
         {
             _logger.LogError("Could not insert into collection: " + e.Message);
         }
+    }
+
+    private async Task CreateCollection(string collection, IMongoDatabase database)
+    {
+        await database.CreateCollectionAsync(collection, new CreateCollectionOptions
+        {
+            TimeSeriesOptions = new TimeSeriesOptions("date", "meta", TimeSeriesGranularity.Hours),
+            ExpireAfter = TimeSpan.FromDays(14)
+        });
+
+        _logger.LogInformation($"Created new db collection: " + collection);
     }
 }

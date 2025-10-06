@@ -30,11 +30,6 @@ builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient("mongodb://loca
 builder.Services.AddSingleton<IDbService, MongoDbService>();
 builder.Services.AddSingleton<DataPointProcessor>();
 
-BsonClassMap.RegisterClassMap<DataPoint>(cm =>
-{
-    cm.AutoMap();
-    cm.MapIdMember(c => c.Id).SetSerializer(new StringSerializer(BsonType.ObjectId));
-});
 
 var app = builder.Build();
 
