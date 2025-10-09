@@ -8,4 +8,5 @@ public record class DataPoint
     public required string Event { get; set; }
     public DateTime? Date { get; set; }
     public required JsonElement Object { get; set; }
+    public bool SkipBlobUpload { get; set; } = false;
 }

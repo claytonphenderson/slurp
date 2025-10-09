@@ -6,6 +6,7 @@ using Azure.Storage.Files.DataLake.Models;
 using Models;
 using System.Reactive.Subjects;
 using System.Reactive.Linq;
+using System.Diagnostics;
 
 namespace Storage;
 
@@ -68,47 +69,61 @@ public class AzureBlobStorageService
 
     public async Task FetchColdData(string subject, string eventName, DateTime start, DateTime end, Subject<DataPoint> ingestSubject)
     {
-        var paths = new List<PathItem>();
-        foreach (var dir in GenerateDateDirectories(subject, eventName, start, end))
+        try
         {
-            await foreach (var pathItem in _fileSystemClient.GetPathsAsync(path: dir, recursive: false))
+            var sw = Stopwatch.StartNew();
+
+            var paths = new List<PathItem>();
+            foreach (var dir in GenerateDateDirectories(subject, eventName, start, end))
             {
-                // Only include files (exclude subdirectories)
-                if (!pathItem.IsDirectory.HasValue || pathItem.IsDirectory == false)
+                await foreach (var pathItem in _fileSystemClient.GetPathsAsync(dir, true))
                 {
-                    paths.Add(pathItem);
+                    // Only include files (exclude subdirectories)
+                    if (!pathItem.IsDirectory.HasValue || pathItem.IsDirectory == false)
+                    {
+                        paths.Add(pathItem);
+                    }
                 }
             }
+            _logger.LogInformation($"Loading {paths.Count} paths...");
+            Parallel.ForEach(paths, new ParallelOptions()
+            {
+                MaxDegreeOfParallelism = 10
+            }, async path =>
+            {
+                var fileClient = _fileSystemClient.GetFileClient(path.Name);
+                var content = await fileClient.ReadStreamingAsync();
+                using var reader = new StreamReader(content.Value.Content);
+
+                while (!reader.EndOfStream)
+                {
+                    var json = await reader.ReadLineAsync();
+                    if (String.IsNullOrEmpty(json)) continue;
+                    var payload = JsonSerializer.Deserialize<JsonElement>(json);
+                    var dataPoint = new DataPoint()
+                    {
+                        Subject = subject,
+                        Event = eventName,
+                        Object = payload,
+                        SkipBlobUpload = true
+                    };
+                    ingestSubject.OnNext(dataPoint);
+                }
+            });
+            sw.Stop();
+            _logger.LogInformation($"Loaded {paths.Count} files in {sw.Elapsed.TotalSeconds} seconds");
         }
-
-        Parallel.ForEach(paths, async path =>
+        catch (Exception e)
         {
-            var fileClient = _fileSystemClient.GetFileClient(path.Name);
-            var content = await fileClient.ReadStreamingAsync();
-            using var reader = new StreamReader(content.Value.Content);
-
-            while (!reader.EndOfStream)
-            {
-                var json = await reader.ReadLineAsync();
-                if (String.IsNullOrEmpty(json)) continue;
-                var dataPoint = JsonSerializer.Deserialize<DataPoint>(json);
-                if (dataPoint is null)
-                {
-                    _logger.LogWarning("Could not deserialize data point... skipping");
-                    continue;
-                }
-
-                ingestSubject.OnNext(dataPoint);
-            }
-        });
+            _logger.LogError(e, "Error loading from cold storage");
+        }
     }
 
     private IEnumerable<string> GenerateDateDirectories(string subject, string eventName, DateTime start, DateTime end)
     {
-        for (var date = start.Date; date <= end.Date; date = date.AddDays(1))
+        for (var date = start.Date; date <= end.Date; date = date.AddMonths(1))
         {
-            // yyyy/MM/dd
-            yield return $"{subject}/{eventName}{date:yyyy/MM/dd}";
+            yield return $"{subject}/{eventName}/{date:yyyy/MM}";
         }
     }
 }

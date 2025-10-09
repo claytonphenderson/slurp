@@ -11,20 +11,22 @@ using Azure.Storage.Blobs;
 using Models;
 using Storage;
 
-namespace StreamReader;
+namespace Http;
 
 public class Worker : BackgroundService
 {
     private readonly ILogger<Worker> _logger;
     private readonly AzureBlobStorageService _blob;
     private readonly IDbService _db;
+    private readonly Subject<DataPoint> _dataPointsSubject;
 
 
-    public Worker(ILogger<Worker> logger, IDbService db, AzureBlobStorageService blob)
+    public Worker(ILogger<Worker> logger, IDbService db, AzureBlobStorageService blob, Subject<DataPoint> dataPointsSubject)
     {
         _logger = logger;
         _db = db;
         _blob = blob;
+        _dataPointsSubject = dataPointsSubject;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -35,8 +37,7 @@ public class Worker : BackgroundService
 
         string consumerGroup = EventHubConsumerClient.DefaultConsumerGroupName;
         var processor = new EventProcessorClient(blobContainerClient, consumerGroup, "https://slurphub.servicebus.windows.net:443/", "events", new DefaultAzureCredential());
-        var dataPointsSubject = new Subject<DataPoint>();
-        var bufferedDataPoints = dataPointsSubject
+        var bufferedDataPoints = _dataPointsSubject
             .Buffer(TimeSpan.FromSeconds(5), 10000);
         ProcessEventArgs? lastProcessedArgs = null;
 
@@ -56,7 +57,7 @@ public class Worker : BackgroundService
 
                     // Then group events by day of "date" field
                     var dateGroup = g.ToList()
-                        .Where(x => x.Date != null)
+                        .Where(x => x.Date != null && !x.SkipBlobUpload)
                         .GroupBy(x => new DateTime(
                             x.Date.Value.Year,
                             x.Date.Value.Month,
@@ -90,7 +91,7 @@ public class Worker : BackgroundService
 
                 item.Date = DateTime.Parse(item.Object.GetProperty("date").ToString()).ToUniversalTime();
 
-                dataPointsSubject.OnNext(item);
+                _dataPointsSubject.OnNext(item);
                 lastProcessedArgs = args;
                 processedCount++;
                 if (processedCount > 1000)

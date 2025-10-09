@@ -37,11 +37,10 @@ public class DataPointProcessor
             await foreach (var item in reader.ReadAllAsync())
             {
                 var date = DateTime.Parse(item.Object.GetProperty("date").ToString());
-                var success = await _blob.AppendToFile(Utils.GetFileName(item.Subject, item.Event, date, "restapi"), [item.Object]);
-                if (success)
-                {
-                    await _db.Insert(item.Subject, item.Event, [item.Object]);
-                }
+                Task.WaitAll([
+                    _blob.AppendToFile(Utils.GetFileName(item.Subject, item.Event, date, "restapi"), [item.Object]),
+                    _db.Insert(item.Subject, item.Event, [item.Object])
+                ]);
             }
         });
     }
