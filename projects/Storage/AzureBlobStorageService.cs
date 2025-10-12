@@ -103,9 +103,10 @@ public class AzureBlobStorageService
                     var dataPoint = new DataPoint()
                     {
                         Subject = subject,
-                        Event = eventName,
+                        Event = $"{eventName}_{start.ToUniversalTime().ToString("yyyy-MM")}_{end.ToUniversalTime().ToString("yyyy-MM")}",
                         Object = payload,
-                        SkipBlobUpload = true
+                        SkipBlobUpload = true,
+                        IsLiveCapture = false
                     };
                     ingestSubject.OnNext(dataPoint);
                 }

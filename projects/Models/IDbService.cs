@@ -4,5 +4,5 @@ namespace Models;
 
 public interface IDbService
 {
-    Task Insert(string db, string collection, List<JsonElement> objs);
+    Task Insert(string db, string collection, List<JsonElement> objs, bool autoExpire = true);
 }

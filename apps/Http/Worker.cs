@@ -53,7 +53,7 @@ public class Worker : BackgroundService
                 grouped.ForEach(async g =>
                 {
                     // bulk insert to mongo collection
-                    await _db.Insert(g.First().Subject, g.First().Event, g.Select(x => x.Object).ToList());
+                    await _db.Insert(g.First().Subject, g.First().Event, g.Select(x => x.Object).ToList(), false);
 
                     // Then group events by day of "date" field
                     var dateGroup = g.ToList()

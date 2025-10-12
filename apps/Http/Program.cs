@@ -50,7 +50,7 @@ app.MapPost("/{subject}/{eventName}/push", async (
         {
             Subject = subject,
             Event = eventName,
-            Object = jsonBody
+            Object = jsonBody,
         };
 
         await processor.IngestNewDataPoint(dataPoint);

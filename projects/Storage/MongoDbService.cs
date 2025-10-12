@@ -22,7 +22,7 @@ public class MongoDbService : IDbService
         _logger = logger;
     }
 
-    public async Task Insert(string db, string collection, List<JsonElement> objs)
+    public async Task Insert(string db, string collection, List<JsonElement> objs, bool autoExpire = true)
     {
         try
         {
@@ -43,7 +43,24 @@ public class MongoDbService : IDbService
             // create the new timeseries collection if necessary
             if (!_dbCollections[db].Contains(collection))
             {
-                await CreateCollection(collection, database);
+                if (autoExpire)
+                {
+                    await database.CreateCollectionAsync(collection, new CreateCollectionOptions
+                    {
+                        TimeSeriesOptions = new TimeSeriesOptions("date", "meta", TimeSeriesGranularity.Hours),
+                        // This is based on the "date" field on the document!
+                        ExpireAfter = TimeSpan.FromDays(14)
+                    });
+                }
+                else
+                {
+                    await database.CreateCollectionAsync(collection, new CreateCollectionOptions
+                    {
+                        TimeSeriesOptions = new TimeSeriesOptions("date", "meta", TimeSeriesGranularity.Hours),
+                    });
+                }
+
+                _logger.LogInformation($"Created new db collection: " + collection);
                 _dbCollections[db].Add(collection);
             }
 
@@ -85,16 +102,5 @@ public class MongoDbService : IDbService
         {
             _logger.LogError("Could not insert into collection: " + e.Message);
         }
-    }
-
-    private async Task CreateCollection(string collection, IMongoDatabase database)
-    {
-        await database.CreateCollectionAsync(collection, new CreateCollectionOptions
-        {
-            TimeSeriesOptions = new TimeSeriesOptions("date", "meta", TimeSeriesGranularity.Hours),
-            ExpireAfter = TimeSpan.FromDays(14)
-        });
-
-        _logger.LogInformation($"Created new db collection: " + collection);
     }
 }
