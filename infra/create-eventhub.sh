@@ -7,7 +7,7 @@ az eventhubs namespace create \
 az eventhubs eventhub create \
     --resource-group slurp \          
     --namespace-name slurphub \           
-    --name events \                
+    --name events-parallel \                
     --partition-count 32
 
 ## note: event hub needs rbac access to write to blob storage for checkpoint

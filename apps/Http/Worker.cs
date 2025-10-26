@@ -16,12 +16,12 @@ namespace Http;
 public class Worker : BackgroundService
 {
     private readonly ILogger<Worker> _logger;
-    private readonly AzureBlobStorageService _blob;
+    private readonly IStorageService _blob;
     private readonly IDbService _db;
     private readonly Subject<DataPoint> _dataPointsSubject;
 
 
-    public Worker(ILogger<Worker> logger, IDbService db, AzureBlobStorageService blob, Subject<DataPoint> dataPointsSubject)
+    public Worker(ILogger<Worker> logger, IDbService db, IStorageService blob, Subject<DataPoint> dataPointsSubject)
     {
         _logger = logger;
         _db = db;
@@ -36,7 +36,7 @@ public class Worker : BackgroundService
         await blobContainerClient.CreateIfNotExistsAsync();
 
         string consumerGroup = EventHubConsumerClient.DefaultConsumerGroupName;
-        var processor = new EventProcessorClient(blobContainerClient, consumerGroup, "https://slurphub.servicebus.windows.net:443/", "events", new DefaultAzureCredential());
+        var processor = new EventProcessorClient(blobContainerClient, consumerGroup, "https://slurphub.servicebus.windows.net:443/", "events-parallel", new DefaultAzureCredential());
         var bufferedDataPoints = _dataPointsSubject
             .Buffer(TimeSpan.FromSeconds(5), 10000);
         ProcessEventArgs? lastProcessedArgs = null;
@@ -53,11 +53,11 @@ public class Worker : BackgroundService
                 grouped.ForEach(async g =>
                 {
                     // bulk insert to mongo collection
-                    await _db.Insert(g.First().Subject, g.First().Event, g.Select(x => x.Object).ToList(), false);
+                    await _db.Insert(g.First().Subject, g.First().Event, g.Select(x => x.Object).ToList());
 
                     // Then group events by day of "date" field
                     var dateGroup = g.ToList()
-                        .Where(x => x.Date != null && !x.SkipBlobUpload)
+                        .Where(x => x.Date != null)
                         .GroupBy(x => new DateTime(
                             x.Date.Value.Year,
                             x.Date.Value.Month,
@@ -91,10 +91,10 @@ public class Worker : BackgroundService
 
                 item.Date = DateTime.Parse(item.Object.GetProperty("date").ToString()).ToUniversalTime();
 
-                _dataPointsSubject.OnNext(item);
+                //_dataPointsSubject.OnNext(item);
                 lastProcessedArgs = args;
                 processedCount++;
-                if (processedCount > 1000)
+                if (processedCount > 30_000)
                 {
                     await args.UpdateCheckpointAsync(args.CancellationToken);
                     // _logger.LogInformation("Updated checkpoint");

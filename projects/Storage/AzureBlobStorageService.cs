@@ -7,6 +7,7 @@ using Models;
 using System.Reactive.Subjects;
 using System.Reactive.Linq;
 using System.Diagnostics;
+using MongoDB.Driver;
 
 namespace Storage;
 
@@ -15,7 +16,7 @@ namespace Storage;
 /// - create logic to break into smaller files if a single file grows larger than some threshold
 /// - write errors to a dead letter queue
 /// </summary>
-public class AzureBlobStorageService
+public class AzureBlobStorageService : IStorageService
 {
     private readonly DataLakeFileSystemClient _fileSystemClient;
     private readonly ILogger<AzureBlobStorageService> _logger;
@@ -67,7 +68,7 @@ public class AzureBlobStorageService
         }
     }
 
-    public async Task FetchColdData(string subject, string eventName, DateTime start, DateTime end, Subject<DataPoint> ingestSubject)
+    public async Task FetchColdData(string subject, string eventName, DateTime start, DateTime end, IDbService db)
     {
         try
         {
@@ -86,29 +87,39 @@ public class AzureBlobStorageService
                 }
             }
             _logger.LogInformation($"Loading {paths.Count} paths...");
-            Parallel.ForEach(paths, new ParallelOptions()
+            await Parallel.ForEachAsync(paths, new ParallelOptions()
             {
                 MaxDegreeOfParallelism = 10
-            }, async path =>
+            }, async (path, ct) =>
             {
-                var fileClient = _fileSystemClient.GetFileClient(path.Name);
-                var content = await fileClient.ReadStreamingAsync();
-                using var reader = new StreamReader(content.Value.Content);
-
-                while (!reader.EndOfStream)
+                try
                 {
-                    var json = await reader.ReadLineAsync();
-                    if (String.IsNullOrEmpty(json)) continue;
-                    var payload = JsonSerializer.Deserialize<JsonElement>(json);
-                    var dataPoint = new DataPoint()
+                    var fileClient = _fileSystemClient.GetFileClient(path.Name);
+                    var content = await fileClient.ReadStreamingAsync();
+                    using var reader = new StreamReader(content.Value.Content);
+
+                    var fileBatch = new List<DataPoint>();
+
+                    while (!reader.EndOfStream)
                     {
-                        Subject = subject,
-                        Event = $"{eventName}_{start.ToUniversalTime().ToString("yyyy-MM")}_{end.ToUniversalTime().ToString("yyyy-MM")}",
-                        Object = payload,
-                        SkipBlobUpload = true,
-                        IsLiveCapture = false
-                    };
-                    ingestSubject.OnNext(dataPoint);
+                        var json = await reader.ReadLineAsync();
+                        if (String.IsNullOrEmpty(json)) continue;
+
+                        var payload = JsonSerializer.Deserialize<JsonElement>(json);
+                        var dataPoint = new DataPoint()
+                        {
+                            Subject = subject,
+                            Event = eventName,
+                            Object = payload,
+                        };
+                        fileBatch.Add(dataPoint);
+                    }
+
+                    await db.Insert(subject, $"{eventName}_{start.ToUniversalTime().ToString("yyyy-MM")}_{end.ToUniversalTime().ToString("yyyy-MM")}", fileBatch.Select(x => x.Object).ToList(), false);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "Error writing cold data to mongo");
                 }
             });
             sw.Stop();

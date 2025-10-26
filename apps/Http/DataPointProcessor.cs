@@ -15,8 +15,8 @@ public class DataPointProcessor
 {
     private readonly Channel<DataPoint> channel = Channel.CreateUnbounded<DataPoint>();
     private readonly IDbService _db;
-    private readonly AzureBlobStorageService _blob;
-    public DataPointProcessor(IDbService db, AzureBlobStorageService blob)
+    private readonly IStorageService _blob;
+    public DataPointProcessor(IDbService db, IStorageService blob)
     {
         _db = db;
         _blob = blob;

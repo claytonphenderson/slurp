@@ -8,7 +8,4 @@ public record class DataPoint
     public required string Event { get; set; }
     public DateTime? Date { get; set; }
     public required JsonElement Object { get; set; }
-    public bool SkipBlobUpload { get; set; } = false;
-    public bool IsLiveCapture { get; set; } = true;
-    public DateTime? InsertionDate { get; set; }
 }

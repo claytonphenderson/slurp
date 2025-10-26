@@ -1,3 +1,6 @@
+using System.Collections.ObjectModel;
+using System.Data.Common;
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -24,8 +27,11 @@ public class MongoDbService : IDbService
 
     public async Task Insert(string db, string collection, List<JsonElement> objs, bool autoExpire = true)
     {
+        var sw = new Stopwatch();
         try
         {
+            if (objs.Count == 0) return;
+
             // assume the database already exists.  helps prevent unwanted data
             var database = _client.GetDatabase(db);
             if (database is null)
@@ -93,14 +99,62 @@ public class MongoDbService : IDbService
                 bsonDocs.Add(bson);
             });
 
-
-            await col.InsertManyAsync(bsonDocs);
-            _logger.LogInformation($"Wrote {bsonDocs.Count} documents to {db}.{collection}");
+            sw.Start();
+            await col.InsertManyAsync(bsonDocs, new InsertManyOptions
+            {
+                IsOrdered = false
+            });
+            sw.Stop();
+            _logger.LogInformation($"Wrote {bsonDocs.Count} documents to {db}.{collection} in {sw.Elapsed.TotalSeconds}s");
 
         }
         catch (Exception e)
         {
             _logger.LogError("Could not insert into collection: " + e.Message);
         }
+        finally
+        {
+            sw.Stop();
+        }
+    }
+
+    public async Task QuickInsertBatch(IMongoCollection<BsonDocument>col, List<BsonDocument> docs)
+    {
+        if (docs.Count == 0) return;
+
+        await col.InsertManyAsync(docs, new InsertManyOptions
+        {
+            IsOrdered = false
+        });
+        _logger.LogInformation($"Wrote {docs.Count} documents to {col.CollectionNamespace}");
+
+    }
+    
+    public async Task<IMongoCollection<BsonDocument>> CheckCollectionExists(string db, string collection)
+    {
+        // assume the database already exists.  helps prevent unwanted data
+        var database = _client.GetDatabase(db);
+        if (database is null)
+        {
+            throw new Exception($"Subject {db} has no existing mongo database");
+        }
+
+        var cursor = await database.ListCollectionNamesAsync();
+        _dbCollections[db] = await cursor.ToListAsync();
+
+        // create the new timeseries collection if necessary
+        if (!_dbCollections[db].Contains(collection))
+        {
+
+            await database.CreateCollectionAsync(collection, new CreateCollectionOptions
+            {
+                TimeSeriesOptions = new TimeSeriesOptions("date", "meta", TimeSeriesGranularity.Hours),
+            });
+
+
+            _logger.LogInformation($"Created new db collection: " + collection);
+            _dbCollections[db].Add(collection);
+        }
+        return database.GetCollection<BsonDocument>(collection);
     }
 }

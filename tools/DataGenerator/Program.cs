@@ -5,7 +5,7 @@ using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
 using Bogus;
 
-await using var producer = new EventHubBufferedProducerClient("https://slurphub.servicebus.windows.net:443/", "events", new DefaultAzureCredential());
+await using var producer = new EventHubBufferedProducerClient("https://slurphub.servicebus.windows.net:443/", "events-parallel", new DefaultAzureCredential());
 var faker = new Faker();
 
 // Start sending events

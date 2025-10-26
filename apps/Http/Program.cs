@@ -19,6 +19,7 @@ builder.Services.Configure<JsonOptions>(options =>
 });
 
 builder.Services.AddSingleton<AzureBlobStorageService>();
+builder.Services.AddSingleton<IStorageService, LocalStorageService>();
 builder.Services.AddSingleton<DataLakeFileSystemClient>(sp =>
 {
     var serviceClient = new DataLakeServiceClient(new Uri("https://slurpdl.blob.core.windows.net"), new DefaultAzureCredential());
@@ -66,12 +67,12 @@ app.MapPost("/{subject}/{eventName}/load", async (
     string subject,
     string eventName,
     ColdFetchRequest request,
-    AzureBlobStorageService storage,
-    Subject<DataPoint> dataPointSubject) =>
+    IStorageService storage,
+    IDbService db) =>
     {
         try
         {
-            await storage.FetchColdData(subject, eventName, request.Start, request.End, dataPointSubject);
+            await storage.FetchColdData(subject, eventName, request.Start, request.End, db);
             return Results.Ok();
         }
         catch (Exception e)
