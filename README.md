@@ -1,6 +1,6 @@
 ## Cold Data Fetch Results
 
-Test Scenario (C#):
+### Test Scenario (C#):
 - 30M records split between 30 files of 1M records each
 - ~7.3GB total size, ~230MB per file
 
@@ -20,7 +20,7 @@ Result:
 ![oops](<redline.png>)
 
 
-Test Scenario (Go):
+### Test Scenario (Go):
 - same mongo impl (native, 16GB of ram)
 - 30 files of 1M records each
 
@@ -34,5 +34,5 @@ Result:
 - ~117MB/s, ~483k records/sec
 
 
-Other tries:
+### Other attempts:
 - using the importScript.sh file in the root directory, I tried streaming directly from NVMe storage into mongo via the mongoimport tool.  This took > 2x the amount of time that the c# tool did.
