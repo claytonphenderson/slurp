@@ -126,7 +126,7 @@ public class MongoDbService : IDbService
         {
             IsOrdered = false
         });
-        _logger.LogInformation($"Wrote {docs.Count} documents to {col.CollectionNamespace}");
+        // _logger.LogInformation($"Wrote {docs.Count} documents to {col.CollectionNamespace}");
 
     }
     

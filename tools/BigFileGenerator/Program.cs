@@ -19,11 +19,22 @@ var batch = "";
 var batchCount = 0;
 while (createdCount < countToCreate)
 {
+    // var dateBsonJson = "{ \"$date\": \"" +
+    // faker.Date.Between(DateTime.Now.AddYears(-1), DateTime.Now)
+    //      .ToString("yyyy-MM-ddTHH:mm:ssZ") +
+    // "\" }";
+
+    var deviceString = faker.PickRandom(new List<string>() { "Android", "iPhone", "Tablet" });
+
     var payload = new
     {
         id = Guid.NewGuid().ToString(),
         ms = faker.Random.Int(),
-        date = faker.Date.Between(DateTime.Now.AddYears(-1), DateTime.Now).ToString("yyyy-MM-ddTHH:mm:ssZ"),
+        date = faker.Date.Between(DateTime.Now.AddYears(-1), DateTime.Now),
+        meta = new
+        {
+            device = deviceString
+        },
         device = faker.PickRandom(new List<string>() { "Android", "iPhone", "Tablet" }),
         name = faker.Name.FirstName(),
         country = faker.Address.Country(),

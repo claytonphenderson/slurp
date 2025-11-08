@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Models;
 using MongoDB.Bson;
+using MongoDB.Driver.Linq;
 
 namespace Storage;
 
@@ -58,7 +59,7 @@ public class LocalStorageService : IStorageService
             var paths = new List<string>();
             foreach (var dir in GenerateDateDirectories(subject, eventName, start, end))
             {
-                var allFiles = Directory.GetFiles(dir, "*", SearchOption.AllDirectories).Where(f=>!Path.GetFileName(f).StartsWith("._")).ToList();
+                var allFiles = Directory.GetFiles(dir, "*", SearchOption.AllDirectories).Where(f => !Path.GetFileName(f).StartsWith("._") && !Path.GetFileName(f).Equals(".DS_Store", StringComparison.OrdinalIgnoreCase)).ToList();
                 paths.AddRange(allFiles);
             }
             _logger.LogInformation($"Loading {paths.Count} paths...");
@@ -66,24 +67,34 @@ public class LocalStorageService : IStorageService
 
             await Parallel.ForEachAsync(paths, new ParallelOptions()
             {
-                MaxDegreeOfParallelism = 4
+                MaxDegreeOfParallelism = 10
             }, async (path, ct) =>
             {
                 try
                 {
+                    var sw2 = new Stopwatch();
+                    sw2.Start();
                     var fileBatch = new List<BsonDocument>();
-
-                    foreach (var line in File.ReadLines(path)
-                        .Where(l => !string.IsNullOrWhiteSpace(l) && l.All(c => !char.IsControl(c) || c == '\n' || c == '\r')))
+                    using var reader = new StreamReader(path);
+                    string line;
+                    while ((line = await reader.ReadLineAsync()) != null)
                     {
+                        if (string.IsNullOrWhiteSpace(line)) continue;
                         try
                         {
                             var bson = BsonDocument.Parse(line);
                             var parsedDate = bson["date"].AsString;
-                            bson["date"] = new BsonDateTime(DateTime.Parse(parsedDate));
-                            bson["meta"] = new BsonDocument();
+                            bson["date"] = DateTime.Parse(parsedDate);
+                            // bson["meta"] = new BsonDocument();
+                            // bson["meta"]["device"] = bson["device"];
 
                             fileBatch.Add(bson);
+
+                            if (fileBatch.Count >= 10_000)
+                            {
+                                await db.QuickInsertBatch(collection, fileBatch);
+                                fileBatch.Clear();
+                            }
                         }
                         catch (Exception e)
                         {
@@ -91,9 +102,33 @@ public class LocalStorageService : IStorageService
                         }
 
                     }
-                    _logger.LogInformation($"Writing {fileBatch.Count} documents from {path}");
+                    if (fileBatch.Count > 0)
+                    {
+                        await db.QuickInsertBatch(collection, fileBatch);
+                        fileBatch.Clear();
+                    }
+                    sw2.Stop();
+                    _logger.LogInformation($"parsed and saved 1M files in {sw2.Elapsed}");
+                    // foreach (var line in File.ReadLines(path)
+                    //     .Where(l => !string.IsNullOrWhiteSpace(l) && l.All(c => !char.IsControl(c) || c == '\n' || c == '\r')))
+                    // {
+                    //     try
+                    //     {
+                    //         var bson = BsonDocument.Parse(line);
+                    //         var parsedDate = bson["date"].AsString;
+                    //         bson["date"] = new BsonDateTime(DateTime.Parse(parsedDate));
+                    //         bson["meta"] = new BsonDocument();
+
+                    //         fileBatch.Add(bson);
+                    //     }
+                    //     catch (Exception e)
+                    //     {
+                    //         _logger.LogWarning(e, "deserializaion at " + line.ToString());
+                    //     }
+
+                    // }
+                    // _logger.LogInformation($"Writing {fileBatch.Count} documents from {path}");
                     // await db.Insert(subject, $"{eventName}_{start.ToUniversalTime().ToString("yyyy-MM")}_{end.ToUniversalTime().ToString("yyyy-MM")}", fileBatch.Select(x => x.Object).ToList(), false);
-                    await db.QuickInsertBatch(collection, fileBatch);
                 }
                 catch (Exception e)
                 {
