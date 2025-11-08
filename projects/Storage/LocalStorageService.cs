@@ -50,6 +50,43 @@ public class LocalStorageService : IStorageService
         }
     }
 
+    public async Task FetchColdData3(string subject, string eventName, DateTime start, DateTime end, IDbService db)
+    {
+        var sw = Stopwatch.StartNew();
+        var paths = new List<string>();
+        foreach (var dir in GenerateDateDirectories(subject, eventName, start, end))
+        {
+            var allFiles = Directory.GetFiles(dir, "*", SearchOption.AllDirectories).Where(f => !Path.GetFileName(f).StartsWith("._") && !Path.GetFileName(f).Equals(".DS_Store", StringComparison.OrdinalIgnoreCase)).ToList();
+            paths.AddRange(allFiles);
+        }
+        _logger.LogInformation($"Loading {paths.Count} paths...");
+        var collectione = await db.CheckCollectionExists(subject, $"{eventName}_{start.ToUniversalTime().ToString("yyyy-MM")}_{end.ToUniversalTime().ToString("yyyy-MM")}");
+        var collection = $"{eventName}_{start.ToUniversalTime().ToString("yyyy-MM")}_{end.ToUniversalTime().ToString("yyyy-MM")}";
+
+        Parallel.ForEach(paths, new ParallelOptions()
+        {
+            MaxDegreeOfParallelism = 1
+        }, (path, ct) =>
+        {
+            // string mongoFile = "/path/to/data.json";
+            _logger.LogInformation("Starting file " + path);
+            string args = $"--uri \"mongodb://localhost:27017\" --db testSubject --collection \"{collection}\" --file \"{path}\" --numInsertionWorkers 10 --quiet";
+
+            var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "mongoimport",
+                Arguments = args,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+
+            process.WaitForExit();
+
+        });
+        _logger.LogInformation($"Done in {sw.Elapsed}");
+    }
+
     public async Task FetchColdData(string subject, string eventName, DateTime start, DateTime end, IDbService db)
     {
         try

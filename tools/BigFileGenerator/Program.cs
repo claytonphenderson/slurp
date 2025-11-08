@@ -19,10 +19,11 @@ var batch = "";
 var batchCount = 0;
 while (createdCount < countToCreate)
 {
-    // var dateBsonJson = "{ \"$date\": \"" +
-    // faker.Date.Between(DateTime.Now.AddYears(-1), DateTime.Now)
-    //      .ToString("yyyy-MM-ddTHH:mm:ssZ") +
-    // "\" }";
+    var date = faker.Date.Between(DateTime.Now.AddYears(-1), DateTime.Now)
+         .ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+    var date2 = $"{{ \"$date\": \"{date}\" }}";
+    var date3 = """{ "$date": "{date}" }}""";
 
     var deviceString = faker.PickRandom(new List<string>() { "Android", "iPhone", "Tablet" });
 
@@ -30,7 +31,10 @@ while (createdCount < countToCreate)
     {
         id = Guid.NewGuid().ToString(),
         ms = faker.Random.Int(),
-        date = faker.Date.Between(DateTime.Now.AddYears(-1), DateTime.Now),
+        date = new Dictionary<string, string>()
+        {
+            {"$date", date}
+        },
         meta = new
         {
             device = deviceString
