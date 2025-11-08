@@ -23,9 +23,9 @@ const (
 	collectionName = "testEvent_2025-01_2025-01"
 
 	dataDir    = "/Volumes/ExternalSSD/slurp-raw/testSubject/testEvent/2025/01"
-	maxFiles   = 10        // concurrent file processors
-	batchSize  = 20_000    // adjust for RAM
-	inserters  = 8         // concurrent batch inserters
+	maxFiles   = 10 
+	batchSize  = 20_000    
+	inserters  = 8         
 )
 
 type docBatch struct {
@@ -36,7 +36,6 @@ func main() {
 	startTime := time.Now()
 	ctx := context.Background()
 
-	// Connect to MongoDB
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
@@ -45,7 +44,7 @@ func main() {
 
 	coll := client.Database(databaseName).Collection(collectionName)
 
-	// Gather all JSONL files recursively
+	// Gather all JSONL paths
 	files := []string{}
 	err = filepath.Walk(dataDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -60,9 +59,8 @@ func main() {
 		log.Fatalf("Failed to scan directory: %v", err)
 	}
 
-	fmt.Printf("Found %d JSONL files\n", len(files))
+	fmt.Printf("Found %d files\n", len(files))
 
-	// Channel for passing batches to inserters
 	batchCh := make(chan docBatch, maxFiles*2)
 	var wg sync.WaitGroup
 
@@ -104,8 +102,8 @@ func main() {
 	}
 
 	fileWg.Wait()
-	close(batchCh) // signal inserters to finish
-	wg.Wait()      // wait for all inserts
+	close(batchCh)
+	wg.Wait()
 
 	fmt.Printf("All files processed in %s\n", time.Since(startTime))
 }
@@ -128,7 +126,7 @@ func processFile(path string, batchCh chan<- docBatch) error {
 		if len(line) > 0 {
 			var doc bson.M
 			if jsonErr := json.Unmarshal(line, &doc); jsonErr != nil {
-				continue // skip invalid lines
+				continue
 			}
 
 			// convert string date to BSON datetime
