@@ -1,0 +1,5 @@
+[slurp:Example] {"thisIsName": "value"}
+[slurp:Other] {"anotherone": "value2"}
+garbage [slurp:Late] {"stillHere": true}
+test[HELLO] [slurp:Example] {"hey": "there"}
+11-26 10:35:35.805 16774 16934 D MeshSerialInterface-[DECT, LORA]: packet() spi 10: E: [slurp:lora_timeline] {"stage": "irq_process_fired" }

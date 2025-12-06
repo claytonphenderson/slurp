@@ -1,32 +1,84 @@
-**/*.env
+# ======================
+# Rider / JetBrains IDE
+# ======================
+.idea/
+*.sln.iml
+*.DotSettings.user
 
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-*.bin
-
-# Build directory
-/build/
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-# Vendor directory (when using Go modules)
-vendor/
-
-# Go module files
-go.sum
-
-# Go binaries
-/slurp
-
+# ======================
+# OS / macOS
+# ======================
 .DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-**/bin/
-**/obj/
+# ======================
+# Build / bin / obj
+# ======================
+[Bb]in/
+[Oo]bj/
+out/
 
-/bin/
-/obj/
+# ======================
+# .NET specific
+# ======================
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.pdb
+*.mdb
+*.log
+*.vspscc
+*.vssscc
+*.cache
+*.dbmdl
+*.bak
+*.Backup
+*.ncb
+*.sdf
+*.db
+*.opendb
+*.vs
+
+# ======================
+# NuGet packages
+# ======================
+*.nupkg
+packages/
+# The packages folder can be restored from nuget.config
+*.snupkg
+
+# ======================
+# Visual Studio / Rider temp files
+# ======================
+.vscode/
+.vs/
+*.ide.*
+*.sln.cache
+*.resharper
+_ReSharper*/
+*.DotSettings
+
+# ======================
+# Test results
+# ======================
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# ======================
+# Rider / JetBrains caches
+# ======================
+.idea/
+*.iml
+*.iws
+*.ipr
+out/

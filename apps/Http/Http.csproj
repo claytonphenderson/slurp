@@ -15,9 +15,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\projects\Ingestion\Ingestion.csproj" />
     <ProjectReference Include="..\..\projects\Models\Models.csproj" />
     <ProjectReference Include="..\..\projects\Storage\Storage.csproj" />
-    <ProjectReference Include="..\..\projects\Ingress\Ingress.csproj" />
   </ItemGroup>
 
 </Project>
