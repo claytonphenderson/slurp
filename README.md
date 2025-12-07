@@ -73,6 +73,11 @@ COPY (
 ) TO '/path/to/output/output.parquet' (FORMAT 'parquet');
 ```
 
+### Build CLT executable
+```js
+dotnet publish ./CommandLineTool.csproj -c Release -r osx-x64 --self-contained true /p:PublishSingleFile=true -o ./publish-output
+```
+
 ### TODO
 - add configuration for directory granularity (hour or minute rather than day)
 - replace hardcoded file paths with config values
