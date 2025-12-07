@@ -61,7 +61,8 @@ month	rt
 2025-12-01	911
 
 ```
-Also, you can use the duckdb ui tool with `duckdb -ui`
+### Visualizing
+You can use the duckdb ui tool with `duckdb -ui`, or use the grafana plugin here https://github.com/motherduckdb/grafana-duckdb-datasource
 
 ### Converting to parquet
 
@@ -71,3 +72,7 @@ COPY (
     FROM read_json_auto('/path/to/dir/*.jsonl')
 ) TO '/path/to/output/output.parquet' (FORMAT 'parquet');
 ```
+
+### TODO
+- add configuration for directory granularity (hour or minute rather than day)
+- replace hardcoded file paths with config values
