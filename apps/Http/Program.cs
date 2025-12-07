@@ -13,7 +13,13 @@ builder.Services.Configure<JsonOptions>(options =>
     options.SerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
-builder.Services.AddSingleton<LocalStorageService>();
+builder.Services.AddSingleton<LocalStorageService>(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var logger = sp.GetRequiredService<ILogger<LocalStorageService>>();
+    var dataDir = config.GetValue<string>("SlurpDataDirectoryPath") ?? "/tmp/slurp-data";
+    return new LocalStorageService(dataDir, logger);});
+
 builder.Services.AddSingleton<IngestionService>();
 
 var app = builder.Build();

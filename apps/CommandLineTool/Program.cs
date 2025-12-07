@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 var watchOption = new Option<bool>("--watch", "-w");
 var fileOption = new Option<string>("--file", "-f");
 var subjectOption = new Option<string>("--subject", "-s");
+var dataDirectory = new Option<string>("--data-directory", "-d");
 
 var root = new RootCommand("Slurp CLT \n " +
                            "use flag --watch to continuously read from std in \n" +
@@ -12,11 +13,13 @@ var root = new RootCommand("Slurp CLT \n " +
 root.Options.Add(watchOption);
 root.Options.Add(fileOption);
 root.Options.Add(subjectOption);
+root.Options.Add(dataDirectory);
 
 var parseResult = root.Parse(args);
 var watchEnabled = parseResult.GetValue(watchOption);
 var fileSpecified = parseResult.GetValue(fileOption);
 var subject = parseResult.GetValue(subjectOption) ?? "default";
+var dataDirectoryPath = parseResult.GetValue(dataDirectory) ?? "/tmp/slurp-data";
 
 using var loggerFactory = LoggerFactory.Create(builder =>
 {
@@ -26,7 +29,7 @@ using var loggerFactory = LoggerFactory.Create(builder =>
 });
 
 var logger = loggerFactory.CreateLogger<Program>();
-var storageService = new Storage.LocalStorageService(new Logger<Storage.LocalStorageService>(new LoggerFactory()));
+var storageService = new Storage.LocalStorageService(dataDirectoryPath, new Logger<Storage.LocalStorageService>( new LoggerFactory()));
 var ingestionService = new Ingestion.IngestionService(storageService);
 
 if (watchEnabled)
@@ -66,6 +69,12 @@ else if (fileSpecified is not null)
             await ingestionService.IngestNewDataPoint(dataPoint);
         }
     }
+
+    var allItemsConsumed = ingestionService.Close();
+    
+    // wait for all items to be read from the channel and then 2 more seconds after that
+    await allItemsConsumed;
+    await Task.Delay(2_000);
 }
 
 logger.LogInformation("Done.");

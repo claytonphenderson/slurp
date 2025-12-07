@@ -2,7 +2,7 @@
 
 namespace Models;
 
-public record class DataPoint
+public record DataPoint
 {
     public required string Subject { get; set; }
     public required string Event { get; set; }

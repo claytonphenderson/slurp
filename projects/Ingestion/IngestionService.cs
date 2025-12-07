@@ -19,6 +19,12 @@ public class IngestionService
         await _channel.Writer.WriteAsync(data);
     }
 
+    public Task Close()
+    {
+        _channel.Writer.Complete();
+        return _channel.Reader.Completion;
+    }
+
     private async Task ProcessCollectedDataPoints()
     {
         await Task.Run(async () =>

@@ -13,14 +13,15 @@ namespace Storage;
 
 public class LocalStorageService
 {
-    private readonly string _rootPath = "/Volumes/ExternalSSD/slurp-raw";
+    private readonly string _rootPath;
     private readonly ILogger<LocalStorageService> _logger;
     private readonly Subject<DataPoint> _incomingDataPoints = new ();
 
-    public LocalStorageService(ILogger<LocalStorageService> logger)
+    public LocalStorageService(string dataDirectoryPath, ILogger<LocalStorageService> logger)
     {
+        _rootPath = dataDirectoryPath;
         _logger = logger;
-        _incomingDataPoints.Buffer(TimeSpan.FromSeconds(5), 1000)
+        _incomingDataPoints.Buffer(TimeSpan.FromSeconds(1), 1000)
             .Subscribe(objs =>
             {
                 var subjectGroups = objs.GroupBy(obj => obj.Subject).ToList();
